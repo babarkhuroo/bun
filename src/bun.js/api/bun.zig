@@ -1098,10 +1098,12 @@ pub const Crypto = struct {
         }
 
         pub fn reset(this: *EVP, engine: *BoringSSL.ENGINE) void {
+            BoringSSL.ERR_clear_error();
             _ = BoringSSL.EVP_DigestInit_ex(&this.ctx, this.md, engine);
         }
 
         pub fn hash(this: *EVP, engine: *BoringSSL.ENGINE, input: []const u8, output: []u8) ?u32 {
+            BoringSSL.ERR_clear_error();
             var outsize: c_uint = @min(@as(u16, @truncate(output.len)), this.size());
             if (BoringSSL.EVP_Digest(input.ptr, input.len, output.ptr, &outsize, this.md, engine) != 1) {
                 return null;
@@ -1111,6 +1113,7 @@ pub const Crypto = struct {
         }
 
         pub fn final(this: *EVP, engine: *BoringSSL.ENGINE, output: []u8) []const u8 {
+            BoringSSL.ERR_clear_error();
             var outsize: u32 = @min(@as(u16, @truncate(output.len)), this.size());
             if (BoringSSL.EVP_DigestFinal_ex(
                 &this.ctx,
@@ -1126,6 +1129,7 @@ pub const Crypto = struct {
         }
 
         pub fn update(this: *EVP, input: []const u8) void {
+            BoringSSL.ERR_clear_error();
             _ = BoringSSL.EVP_DigestUpdate(&this.ctx, input.ptr, input.len);
         }
 
@@ -1134,6 +1138,7 @@ pub const Crypto = struct {
         }
 
         pub fn copy(this: *const EVP, engine: *BoringSSL.ENGINE) error{OutOfMemory}!EVP {
+            BoringSSL.ERR_clear_error();
             var new = init(this.algorithm, this.md, engine);
             if (BoringSSL.EVP_MD_CTX_copy_ex(&new.ctx, &this.ctx) == 0) {
                 return error.OutOfMemory;
@@ -2004,7 +2009,6 @@ pub const Crypto = struct {
 
         pub const digest = JSC.wrapInstanceMethod(CryptoHasher, "digest_", false);
         pub const hash = JSC.wrapStaticMethod(CryptoHasher, "hash_", false);
-
         pub fn getByteLength(
             this: *CryptoHasher,
             _: *JSC.JSGlobalObject,
@@ -2114,7 +2118,6 @@ pub const Crypto = struct {
         }
 
         pub fn constructor(globalThis: *JSC.JSGlobalObject, callframe: *JSC.CallFrame) callconv(.C) ?*CryptoHasher {
-            BoringSSL.load();
             var arguments = callframe.arguments(2);
             if (arguments.len == 0) {
                 globalThis.throwInvalidArguments("Expected an algorithm name as an argument", .{});
